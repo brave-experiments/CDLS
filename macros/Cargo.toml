@@ -1,0 +1,17 @@
+[package]
+name = "cdls-macros"
+version = "0.0.1"
+description = "The macros for cdls"
+
+[dependencies]
+ark-ff = { version = "0.4.2", default-features = false }
+ark-ec = { version = "0.4.2", default-features = false }
+ark-r1cs-std = { version = "0.4.0", default-features = false, optional = true }
+ark-std = { version = "0.4.0", default-features = false }
+pedersen = { path="../pedersen" }
+rand = { version = "0.8.5" }
+rand_core = { version = "0.6.4" }
+merlin = { version = "3.0.0" }
+ark-ff-macros =  { version = "0.4.2", default-features = false }
+criterion = "0.5.1"
+sha2 = "0.10.8"

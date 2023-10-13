@@ -1,0 +1,8 @@
+[workspace]
+members = [
+  "./pedersen",
+  "./t256",
+  "./t384",
+  "./macros",
+]
+
