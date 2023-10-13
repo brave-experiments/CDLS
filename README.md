@@ -15,3 +15,15 @@ or
   cargo build
   cargo run
 ```
+
+To test:
+
+```
+  make test
+```
+
+To benchmark:
+
+```
+  make bench
+```
