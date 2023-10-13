@@ -1,6 +1,6 @@
 # CDLS (Cuddles): Committed Discrete Logarithms with Soundness
 
-<img src="https://github.com/brave-experiments/CDLS/assets/8270508/90e873eb-fb8d-47e7-a016-daccb64820c0" alt="cdls" width="200"/>
+<img width="171" alt="Screenshot 2023-10-13 at 12 25 30" src="https://github.com/brave-experiments/CDLS/assets/8270508/7a115c97-b3c4-4363-a6f3-98e1a36ba59d">
 
 Run either:
 
