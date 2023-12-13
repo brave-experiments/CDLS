@@ -88,6 +88,33 @@ impl MulTranscript for Transcript {
     }
 }
 
+pub trait NonZeroTranscript {
+    /// Append a domain separator.
+    fn domain_sep(&mut self);
+
+    /// Append a point.
+    fn append_point(&mut self, label: &'static [u8], point: &[u8]);
+
+    /// Produce the challenge.
+    fn challenge_scalar(&mut self, label: &'static [u8]) -> [u8; CHALLENGE_SIZE];
+}
+
+impl NonZeroTranscript for Transcript {
+    fn domain_sep(&mut self) {
+        self.append_message(b"dom-sep", b"mul-proof")
+    }
+
+    fn append_point(&mut self, label: &'static [u8], point: &[u8]) {
+        self.append_message(label, point);
+    }
+
+    fn challenge_scalar(&mut self, label: &'static [u8]) -> [u8; CHALLENGE_SIZE] {
+        let mut buf = [0u8; CHALLENGE_SIZE];
+        self.challenge_bytes(label, &mut buf);
+        buf
+    }
+}
+
 pub trait ECPointAdditionTranscript {
     /// Append a domain separator.
     fn domain_sep(&mut self);

@@ -504,6 +504,41 @@ macro_rules! __test_pedersen {
         }
 
         #[test]
+        fn test_pedersen_non_zero() {
+            // Test that the non-zero proof goes through.
+            let label = b"PedersenNonZero";
+
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            let mut transcript = Transcript::new(label);
+            let proof = NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+            assert!(proof.t1.is_on_curve());
+            assert!(proof.t2.is_on_curve());
+            assert!(proof.t3.is_on_curve());
+
+            // Now check that the proof verifies.
+            let mut transcript_v = Transcript::new(label);
+            assert!(proof.verify(&mut transcript_v, &c1.comm));
+
+            // And now check it would fail on a different c1 value.
+
+            let mut d = SF::rand(&mut OsRng);
+
+            loop {
+                if d != x {
+                    break;
+                }
+                d = SF::rand(&mut OsRng);
+            }
+
+            let c2: PC = PC::new(d, &mut OsRng);
+            let mut transcript_f = Transcript::new(label);
+            assert!(!proof.verify(&mut transcript_f, &c2.comm));
+        }
+
+        #[test]
         fn test_pedersen_point_add() {
             // Test that the point addition proof goes through.
             let label = b"PedersenECPointAdd";
@@ -1225,6 +1260,7 @@ macro_rules! test_pedersen {
                 gk_zero_one_protocol::{ZeroOneProof as ZOP, ZeroOneProofIntermediate as ZOPI},
                 interpolate::PolynomialInterpolation,
                 mul_protocol::MulProof as MP,
+                non_zero_protocol::NonZeroProof as NZP,
                 opening_protocol::OpeningProof as OP,
                 pedersen_config::PedersenComm,
                 pedersen_config::PedersenConfig,

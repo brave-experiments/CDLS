@@ -1208,6 +1208,7 @@ macro_rules! bench_tcurve_import_everything {
             fs_scalar_mul_protocol::FSECScalarMulProof as FSECSMP,
             gk_zero_one_protocol::ZeroOneProof as ZOP,
             mul_protocol::MulProof as MP,
+            non_zero_protocol::NonZeroProof as NZP,
             opening_protocol::OpeningProof as OP,
             pedersen_config::PedersenComm,
             pedersen_config::PedersenConfig,

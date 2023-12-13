@@ -8,6 +8,7 @@ pub mod fs_scalar_mul_protocol;
 pub mod gk_zero_one_protocol;
 pub mod interpolate;
 pub mod mul_protocol;
+pub mod non_zero_protocol;
 pub mod opening_protocol;
 pub mod pedersen_config;
 pub mod point_add;
