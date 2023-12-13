@@ -101,7 +101,7 @@ pub trait NonZeroTranscript {
 
 impl NonZeroTranscript for Transcript {
     fn domain_sep(&mut self) {
-        self.append_message(b"dom-sep", b"mul-proof")
+        self.append_message(b"dom-sep", b"non-zero-proof")
     }
 
     fn append_point(&mut self, label: &'static [u8], point: &[u8]) {
