@@ -142,6 +142,52 @@ macro_rules! bench_tcurve_mul_verifier_time {
 }
 
 #[macro_export]
+macro_rules! bench_tcurve_non_zero_prover_time {
+    ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
+        pub fn $bench_name(c: &mut Criterion) {
+            type SF = <$config as CurveConfig>::ScalarField;
+            type PC = PedersenComm<$config>;
+
+            let label = b"PedersenNonZero";
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            c.bench_function(concat!($curve_name, " non-zero proof prover time"), |bf| {
+                bf.iter(|| {
+                    let mut transcript = Transcript::new(label);
+                    NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+                });
+            });
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bench_tcurve_non_zero_verifier_time {
+    ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
+        pub fn $bench_name(c: &mut Criterion) {
+            type SF = <$config as CurveConfig>::ScalarField;
+            type PC = PedersenComm<$config>;
+
+            let label = b"PedersenNonZero";
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+            let mut transcript = Transcript::new(label);
+            let proof = ZKP::create(&mut transcript, &mut OsRng, &x, &c1);
+
+            c.bench_function(concat!($curve_name, " non-zero proof verifier time"), |b| {
+                b.iter(|| {
+                    let mut transcript_v = Transcript::new(label);
+                    proof.verify(&mut transcript_v, &c1.comm);
+                });
+            });
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! bench_tcurve_point_add_prover_time {
     ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
         pub fn $bench_name(c: &mut Criterion) {
