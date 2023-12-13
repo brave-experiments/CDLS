@@ -539,6 +539,105 @@ macro_rules! __test_pedersen {
         }
 
         #[test]
+        fn test_pedersen_non_zero_other_challenge() {
+            // Check that the non-zero proof fails if the wrong challenge is used.
+            // Test that the non-zero proof goes through.
+            let label = b"PedersenNonZero";
+
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            let mut transcript = Transcript::new(label);
+
+            let proof_i = NZP::create_intermediates(&mut transcript, &mut OsRng, &x, &c1);
+
+            // Now we pre-specify the challenge to be the CM1 point.
+            let c = make_challenge(&<$config as PedersenConfig>::CM1);
+
+            let proof = NZP::create_proof(&x, &proof_i, &c1, &c[..]);
+            assert!(proof.t1.is_on_curve());
+            assert!(proof.t2.is_on_curve());
+            assert!(proof.t3.is_on_curve());
+
+            // Now check that the proof verifies on the same challenge.
+            assert!(proof.verify_proof(&c1.comm, &c[..]));
+
+            // And that it fails on the other one.
+            let cf = make_challenge(&<$config as PedersenConfig>::CP1);
+            assert!(!proof.verify_proof(&c1.comm, &cf[..]));
+        }
+
+        #[test]
+        fn test_pedersen_non_zero_nist() {
+            // Test that the non-zero proof goes through.
+            let label = b"PedersenNonZero";
+
+            let x_t = OSF::rand(&mut OsRng);
+
+            let x = <$config as PedersenConfig>::from_oc(x_t);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            let mut transcript = Transcript::new(label);
+            let proof = NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+            assert!(proof.t1.is_on_curve());
+            assert!(proof.t2.is_on_curve());
+            assert!(proof.t3.is_on_curve());
+
+            // Now check that the proof verifies.
+            let mut transcript_v = Transcript::new(label);
+            assert!(proof.verify(&mut transcript_v, &c1.comm));
+
+            // And now check it would fail on a different c1 value.
+
+            let mut d = SF::rand(&mut OsRng);
+
+            loop {
+                if d != x {
+                    break;
+                }
+                d = SF::rand(&mut OsRng);
+            }
+
+            let c2: PC = PC::new(d, &mut OsRng);
+            let mut transcript_f = Transcript::new(label);
+            assert!(!proof.verify(&mut transcript_f, &c2.comm));
+        }
+
+        #[test]
+        fn test_pedersen_non_zero_nist_other_challenge() {
+            // Check that the non-zero proof fails if the wrong challenge is used.
+            // Test that the non-zero proof goes through.
+            let label = b"PedersenMul";
+
+            let x_t = OSF::rand(&mut OsRng);
+
+            let x = <$config as PedersenConfig>::from_oc(x_t);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            let mut transcript = Transcript::new(label);
+
+            let proof_i = NZP::create_intermediates(&mut transcript, &mut OsRng, &x, &c1);
+
+            // Now we pre-specify the challenge to be the CM1 point.
+            let c = make_challenge(&<$config as PedersenConfig>::CM1);
+
+            let proof = NZP::create_proof(&x, &proof_i, &c1, &c[..]);
+            assert!(proof.t1.is_on_curve());
+            assert!(proof.t2.is_on_curve());
+            assert!(proof.t3.is_on_curve());
+
+            // Now check that the proof verifies on the same challenge.
+            assert!(proof.verify_proof(&c1.comm, &c[..]));
+
+            // And that it fails on the other one.
+            let cf = make_challenge(&<$config as PedersenConfig>::CP1);
+            assert!(!proof.verify_proof(&c1.comm, &cf[..]));
+        }
+
+        #[test]
         fn test_pedersen_point_add() {
             // Test that the point addition proof goes through.
             let label = b"PedersenECPointAdd";
