@@ -539,6 +539,26 @@ macro_rules! __test_pedersen {
         }
 
         #[test]
+        fn test_pedersen_non_zero_fail() {
+            // Test that the non-zero proof goes through.
+            let label = b"PedersenNonZero";
+
+            let x = SF::ZERO;
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            let mut transcript = Transcript::new(label);
+            let proof = NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+            assert!(proof.t1.is_on_curve());
+            assert!(proof.t2.is_on_curve());
+            assert!(proof.t3.is_on_curve());
+
+            // Now check that the proof verifies.
+            let mut transcript_v = Transcript::new(label);
+            assert!(!proof.verify(&mut transcript_v, &c1.comm));
+        }
+
+        #[test]
         fn test_pedersen_non_zero_other_challenge() {
             // Check that the non-zero proof fails if the wrong challenge is used.
             // Test that the non-zero proof goes through.
