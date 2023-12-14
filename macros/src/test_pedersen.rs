@@ -540,7 +540,7 @@ macro_rules! __test_pedersen {
 
         #[test]
         fn test_pedersen_non_zero_fail() {
-            // Test that the non-zero proof goes through.
+            // Test that the non-zero proof does not go through.
             let label = b"PedersenNonZero";
 
             let x = SF::ZERO;
@@ -553,9 +553,10 @@ macro_rules! __test_pedersen {
             assert!(proof.t2.is_on_curve());
             assert!(proof.t3.is_on_curve());
 
-            // Now check that the proof verifies.
+            // Now check that the proof fails on verification.
             let mut transcript_v = Transcript::new(label);
             assert!(!proof.verify(&mut transcript_v, &c1.comm));
+            assert!(proof.t1 == sw::Affine::identity());
         }
 
         #[test]
