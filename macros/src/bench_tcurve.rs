@@ -142,6 +142,52 @@ macro_rules! bench_tcurve_mul_verifier_time {
 }
 
 #[macro_export]
+macro_rules! bench_tcurve_non_zero_prover_time {
+    ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
+        pub fn $bench_name(c: &mut Criterion) {
+            type SF = <$config as CurveConfig>::ScalarField;
+            type PC = PedersenComm<$config>;
+
+            let label = b"PedersenNonZero";
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+
+            c.bench_function(concat!($curve_name, " non-zero proof prover time"), |bf| {
+                bf.iter(|| {
+                    let mut transcript = Transcript::new(label);
+                    NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+                });
+            });
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bench_tcurve_non_zero_verifier_time {
+    ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
+        pub fn $bench_name(c: &mut Criterion) {
+            type SF = <$config as CurveConfig>::ScalarField;
+            type PC = PedersenComm<$config>;
+
+            let label = b"PedersenNonZero";
+            let x = SF::rand(&mut OsRng);
+
+            let c1: PC = PC::new(x, &mut OsRng);
+            let mut transcript = Transcript::new(label);
+            let proof = NZP::create(&mut transcript, &mut OsRng, &x, &c1);
+
+            c.bench_function(concat!($curve_name, " non-zero proof verifier time"), |b| {
+                b.iter(|| {
+                    let mut transcript_v = Transcript::new(label);
+                    proof.verify(&mut transcript_v, &c1.comm);
+                });
+            });
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! bench_tcurve_point_add_prover_time {
     ($config: ty, $bench_name: ident, $curve_name: tt, $OtherProjectiveType: ty) => {
         pub fn $bench_name(c: &mut Criterion) {
@@ -1208,6 +1254,7 @@ macro_rules! bench_tcurve_import_everything {
             fs_scalar_mul_protocol::FSECScalarMulProof as FSECSMP,
             gk_zero_one_protocol::ZeroOneProof as ZOP,
             mul_protocol::MulProof as MP,
+            non_zero_protocol::NonZeroProof as NZP,
             opening_protocol::OpeningProof as OP,
             pedersen_config::PedersenComm,
             pedersen_config::PedersenConfig,
@@ -1269,6 +1316,18 @@ macro_rules! bench_tcurve_make_all {
         $crate::bench_tcurve_mul_verifier_time!(
             $config,
             mul_proof_verification,
+            $curve_name,
+            $OtherProjectiveType
+        );
+        $crate::bench_tcurve_non_zero_prover_time!(
+            $config,
+            non_zero_proof_creation,
+            $curve_name,
+            $OtherProjectiveType
+        );
+        $crate::bench_tcurve_non_zero_verifier_time!(
+            $config,
+            non_zero_proof_verification,
             $curve_name,
             $OtherProjectiveType
         );
@@ -1411,6 +1470,8 @@ macro_rules! bench_tcurve_make_all {
             equality_proof_verification,
             mul_proof_creation,
             mul_proof_verification,
+            non_zero_proof_creation,
+            non_zero_proof_verification,
             point_add_creation,
             zk_attest_point_add_creation,
             point_add_verification,
