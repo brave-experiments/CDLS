@@ -175,7 +175,7 @@ macro_rules! bench_tcurve_non_zero_verifier_time {
 
             let c1: PC = PC::new(x, &mut OsRng);
             let mut transcript = Transcript::new(label);
-            let proof = ZKP::create(&mut transcript, &mut OsRng, &x, &c1);
+            let proof = NZP::create(&mut transcript, &mut OsRng, &x, &c1);
 
             c.bench_function(concat!($curve_name, " non-zero proof verifier time"), |b| {
                 b.iter(|| {
@@ -1319,6 +1319,18 @@ macro_rules! bench_tcurve_make_all {
             $curve_name,
             $OtherProjectiveType
         );
+        $crate::bench_tcurve_non_zero_prover_time!(
+            $config,
+            non_zero_proof_creation,
+            $curve_name,
+            $OtherProjectiveType
+        );
+        $crate::bench_tcurve_non_zero_verifier_time!(
+            $config,
+            non_zero_proof_verification,
+            $curve_name,
+            $OtherProjectiveType
+        );
 
         $crate::bench_tcurve_point_add_prover_time!(
             $config,
@@ -1458,6 +1470,8 @@ macro_rules! bench_tcurve_make_all {
             equality_proof_verification,
             mul_proof_creation,
             mul_proof_verification,
+            non_zero_proof_creation,
+            non_zero_proof_verification,
             point_add_creation,
             zk_attest_point_add_creation,
             point_add_verification,
