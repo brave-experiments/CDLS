@@ -17,6 +17,10 @@ use crate::{
     mul_protocol::{
         MulProof, MulProofIntermediate, MulProofIntermediateTranscript, MulProofTranscriptable,
     },
+    non_zero_protocol::{
+        NonZeroProof, NonZeroProofIntermediate, NonZeroProofIntermediateTranscript,
+        NonZeroProofTranscriptable,
+    },
     opening_protocol::{
         OpeningProof, OpeningProofIntermediate, OpeningProofIntermediateTranscript,
         OpeningProofTranscriptable,
@@ -69,6 +73,9 @@ pub struct ECPointAddProof<P: PedersenConfig> {
 
     /// op: the opening proof of C2.
     pub op: OpeningProof<P>,
+
+    /// nzp: the non-zero proof of C3 - C1, which verifies that the bx − ax != 0 (i.e. A = ±B).
+    pub nzp: NonZeroProof<P>,
 }
 
 /// ECPointAddIntermediate. This struct acts as a container for the intermediate values of an Elliptic Curve Point
@@ -86,6 +93,8 @@ pub struct ECPointAddIntermediate<P: PedersenConfig> {
     pub mpi3: MulProofIntermediate<P>,
     /// opi: the intermediates for verifying the opening of C2.
     pub opi: OpeningProofIntermediate<P>,
+    /// nzpi: the intermediates for verifying the non-zero proof.
+    pub nzpi: NonZeroProofIntermediate<P>,
 }
 
 /// ECPointAddIntermediateTranscript. This struct provides a wrapper for every input
@@ -103,6 +112,8 @@ pub struct ECPointAddIntermediateTranscript<P: PedersenConfig> {
     pub mpi3: MulProofIntermediateTranscript<P>,
     /// opi: the intermediates for verifying the opening of C2.
     pub opi: OpeningProofIntermediateTranscript<P>,
+    /// nzpi: the intermediates for verifying the non-zero proof.
+    pub nzpi: NonZeroProofIntermediateTranscript<P>,
 }
 
 impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
@@ -126,6 +137,7 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
             mpi2: MulProof::make_intermediate_transcript(inter.mpi2),
             mpi3: MulProof::make_intermediate_transcript(inter.mpi3),
             opi: OpeningProof::make_intermediate_transcript(inter.opi),
+            nzpi: NonZeroProof::make_intermediate_transcript(inter.nzpi),
         }
     }
 
@@ -183,9 +195,14 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
         let z6 = c2 + c6; // The commitment to a.y + t.y.
         let mpi3 = MulProof::create_intermediates(transcript, rng, &c7, &z5, &z6);
 
-        // And, finally, the intermediates for the Opening proof.
+        // The intermediates for the Opening proof.
         // This proves that C2 opens to a.y.
         let opi = OpeningProof::create_intermediates(transcript, rng, c2);
+
+        // The intermediates for the Non-Zero proof.
+        // This verifies that the bx − ax != 0.
+        let x1 = <P as PedersenConfig>::from_ob_to_sf(b.x - a.x);
+        let nzpi = NonZeroProof::create_intermediates(transcript, rng, &x1, &z1);
 
         // Now we return the intermediates.
         ECPointAddIntermediate {
@@ -194,6 +211,7 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
             mpi2,
             mpi3,
             opi,
+            nzpi,
         }
     }
 
@@ -266,13 +284,16 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
 
         let op = OpeningProof::create_proof_with_challenge(&ay_sf, &inter.opi, c2, chal);
 
-        // And now we just return.
+        let nzp = NonZeroProof::create_proof_with_challenge(&x1, &inter.nzpi, &z1, chal);
+
+        // And we return.
         Self {
             c7: inter.c7.comm,
             mp1,
             mp2,
             mp3,
             op,
+            nzp,
         }
     }
 
@@ -307,6 +328,7 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
                 .verify_with_challenge(&self.c7, &self.c7, &z4, chal)
             && self.mp3.verify_with_challenge(z2, &z5, &z6, chal)
             && self.op.verify_with_challenge(c2, chal)
+            && self.nzp.verify_with_challenge(&z1, chal)
     }
 
     /// serialized_size. Returns the number of bytes needed to represent this proof object once serialised.
@@ -316,6 +338,7 @@ impl<P: PedersenConfig> PointAddProtocol<P> for ECPointAddProof<P> {
             + self.mp2.serialized_size()
             + self.mp3.serialized_size()
             + self.op.serialized_size()
+            + self.nzp.serialized_size()
     }
 
     fn add_proof_to_transcript(
@@ -391,6 +414,7 @@ impl<P: PedersenConfig> ECPointAddProof<P> {
     pub fn make_subproof_transcripts<
         MP: MulProofTranscriptable<Affine = sw::Affine<P>>,
         OP: OpeningProofTranscriptable<Affine = sw::Affine<P>>,
+        NZP: NonZeroProofTranscriptable<Affine = sw::Affine<P>>,
     >(
         transcript: &mut Transcript,
         c1: &sw::Affine<P>,
@@ -404,6 +428,7 @@ impl<P: PedersenConfig> ECPointAddProof<P> {
         mp2: &MP,
         mp3: &MP,
         op: &OP,
+        nzp: &NZP,
     ) {
         let z1 = (c3.into_group() - c1).into_affine();
         let z2 = &c7;
@@ -417,6 +442,7 @@ impl<P: PedersenConfig> ECPointAddProof<P> {
         mp2.add_to_transcript(transcript, c7, c7, &z4);
         mp3.add_to_transcript(transcript, z2, &z5, &z6);
         op.add_to_transcript(transcript, c2);
+        nzp.add_to_transcript(transcript, &z1);
     }
 }
 
@@ -431,10 +457,11 @@ impl<P: PedersenConfig> ECPointAddProofTranscriptable<P> for ECPointAddProof<P> 
         c5: &sw::Affine<P>,
         c6: &sw::Affine<P>,
     ) {
-        // Just build each bit in turn.
+        // Build each bit in turn.
         ECPointAddProof::make_transcript(transcript, c1, c2, c3, c4, c5, c6, &self.c7);
         ECPointAddProof::make_subproof_transcripts(
-            transcript, c1, c2, c3, c4, c5, c6, &self.c7, &self.mp1, &self.mp2, &self.mp3, &self.op,
+            transcript, c1, c2, c3, c4, c5, c6, &self.c7, &self.mp1, &self.mp2, &self.mp3,
+            &self.op, &self.nzp,
         );
     }
 }
@@ -450,7 +477,7 @@ impl<P: PedersenConfig> ECPointAddProofTranscriptable<P> for ECPointAddIntermedi
         c5: &sw::Affine<P>,
         c6: &sw::Affine<P>,
     ) {
-        // Just build each bit in turn.
+        // Build each bit in turn.
         ECPointAddProof::make_transcript(transcript, c1, c2, c3, c4, c5, c6, &self.c7.comm);
         ECPointAddProof::make_subproof_transcripts(
             transcript,
@@ -465,6 +492,7 @@ impl<P: PedersenConfig> ECPointAddProofTranscriptable<P> for ECPointAddIntermedi
             &self.mpi2,
             &self.mpi3,
             &self.opi,
+            &self.nzpi,
         );
     }
 }
@@ -480,11 +508,11 @@ impl<P: PedersenConfig> ECPointAddProofTranscriptable<P> for ECPointAddIntermedi
         c5: &sw::Affine<P>,
         c6: &sw::Affine<P>,
     ) {
-        // Just build each bit in turn.
+        // Build each bit in turn.
         ECPointAddProof::make_transcript(transcript, c1, c2, c3, c4, c5, c6, &self.c7);
         ECPointAddProof::make_subproof_transcripts(
             transcript, c1, c2, c3, c4, c5, c6, &self.c7, &self.mpi1, &self.mpi2, &self.mpi3,
-            &self.opi,
+            &self.opi, &self.nzpi,
         );
     }
 }
