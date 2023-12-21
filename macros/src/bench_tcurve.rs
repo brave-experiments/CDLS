@@ -212,7 +212,7 @@ macro_rules! bench_tcurve_point_add_prover_time {
             let (cax, cay, cbx, cby, ctx, cty) =
                 <$config as PedersenConfig>::create_commitments_to_coords(a, b, t, &mut OsRng);
 
-            c.bench_function(concat!($curve_name, " point add prover time"), |bf| {
+            c.bench_function(concat!($curve_name, " CDLS point add prover time"), |bf| {
                 bf.iter(|| {
                     let mut transcript = Transcript::new(label);
                     EPAP::<$config>::create_with_existing_commitments(
@@ -286,20 +286,23 @@ macro_rules! bench_tcurve_point_add_verifier_time {
                 proof.serialized_size() + comm_size
             );
 
-            c.bench_function(concat!($curve_name, " point add verifier time"), |bf| {
-                bf.iter(|| {
-                    let mut transcript_v = Transcript::new(label);
-                    proof.verify(
-                        &mut transcript_v,
-                        &cax.comm,
-                        &cay.comm,
-                        &cbx.comm,
-                        &cby.comm,
-                        &ctx.comm,
-                        &cty.comm,
-                    );
-                });
-            });
+            c.bench_function(
+                concat!($curve_name, " CDLS point add verifier time"),
+                |bf| {
+                    bf.iter(|| {
+                        let mut transcript_v = Transcript::new(label);
+                        proof.verify(
+                            &mut transcript_v,
+                            &cax.comm,
+                            &cay.comm,
+                            &cbx.comm,
+                            &cby.comm,
+                            &ctx.comm,
+                            &cty.comm,
+                        );
+                    });
+                },
+            );
         }
     };
 }
@@ -441,7 +444,7 @@ macro_rules! bench_tcurve_scalar_mul_prover_time {
             let c2 = PC::new(<$config as PedersenConfig>::from_ob_to_sf(s.x), &mut OsRng);
             let c3 = PC::new(<$config as PedersenConfig>::from_ob_to_sf(s.y), &mut OsRng);
 
-            c.bench_function(concat!($curve_name, " scalar mul prover time"), |b| {
+            c.bench_function(concat!($curve_name, " CDLS scalar mul prover time"), |b| {
                 b.iter(|| {
                     let mut transcript = Transcript::new(label);
                     let inter = ECSMP::<$config>::create_intermediates_with_existing_commitments(
@@ -524,11 +527,14 @@ macro_rules! bench_tcurve_scalar_mul_verifier_time {
                 proof.serialized_size() + comm_size
             );
 
-            c.bench_function(concat!($curve_name, " scalar mul verifier time"), |b| {
-                b.iter(|| {
-                    proof.verify_proof(&OGENERATOR, &chal, &c1, &c2.comm, &c3.comm);
-                });
-            });
+            c.bench_function(
+                concat!($curve_name, " CDLS scalar mul verifier time"),
+                |b| {
+                    b.iter(|| {
+                        proof.verify_proof(&OGENERATOR, &chal, &c1, &c2.comm, &c3.comm);
+                    });
+                },
+            );
         }
     };
 }
@@ -551,7 +557,7 @@ macro_rules! bench_tcurve_fs_scalar_mul_prover_time {
             let c3 = PC::new(<$config as PedersenConfig>::from_ob_to_sf(s.y), &mut OsRng);
 
             c.bench_function(
-                concat!($curve_name, " fiat-shamir scalar mul prover time"),
+                concat!($curve_name, " CDLS fiat-shamir scalar mul prover time"),
                 |b| {
                     b.iter(|| {
                         let mut transcript = Transcript::new(label);
@@ -612,7 +618,7 @@ macro_rules! bench_tcurve_fs_scalar_mul_verifier_time {
             );
 
             c.bench_function(
-                concat!($curve_name, " fiat-shamir scalar mul verifier time"),
+                concat!($curve_name, " CDLS fiat-shamir scalar mul verifier time"),
                 |b| {
                     b.iter(|| {
                         let mut transcript_v = Transcript::new(label);
